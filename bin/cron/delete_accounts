@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+
+require_relative '../../pegasus/src/env'
+require_relative '../../dashboard/config/environment'
+require 'cdo/db'
+require 'cdo/pardot'
+require 'cdo/only_one'
+require 'cdo/solr'
+require 'cdo/solr_helper'
+
+ANONYMIZED_SECTION_NAME = 'anonymized by deleted_accounts'.freeze
+OPEN_ENDED_LEVEL_TYPES = %w(
+  Applab
+  FreeResponse
+  Gamelab
+  Weblab
+).freeze
+
+raise 'No SOLR server configured' unless CDO.solr_server
+SOLR = Solr::Server.new(host: CDO.solr_server)
+
+# Deletes all projects and project data associated with a user.
+# @param [Integer] user_id for which to delete projects and project data.
+def delete_projects_and_project_data(user_id)
+  # TODO(asher): Delete channel-backed projects.
+
+  GalleryActivity.where(user_id: user_id).delete_all
+end
+
+# @param [Integer] user_id for which to delete free response answers.
+def delete_open_ended_answers(user_id)
+  UserLevels.where(user_id: user_id).find_each do |user_level|
+    if OPEN_ENDED_LEVEL_TYPES.include? user_level.level.type
+      user_level.level_source.level_source_image.destroy
+      user_level.level_source.destroy
+    end
+  end
+
+  Activity.where(user_id: user_id).find_each do |activity|
+    if OPEN_ENDED_LEVEL_TYPES.include? activity.level.type
+      activity.level_source.level_source_image.destroy
+      activity.level_source.destroy
+    end
+  end
+end
+
+# @param [Integer] user_id for which to remove free response portions of surveys.
+def clean_survey_responses(user_id)
+  SurveyResult.where(user_id: user_id).each do |survey_result|
+    SurveyResult::FREE_RESPONSE_ATTRS.each do |free_response_attr|
+      # TODO(asher): Remove the attribute rather than setting it to nil.
+      survey_result.send(free_response_attr + '=', nil)
+    end
+  end
+end
+
+# Immediately destroy all student users whose acceptance of our Terms of Service and Privacy Policy
+# is only through the being purged user.
+# @param [Integer] user_id for which to delete orphaned students.
+def delete_orphaned_students(user_id)
+  section_ids = Section.with_deleted.
+    where(user_id: user.id).
+    where(login_type: [Section::LOGIN_TYPE_PICTURE, Section::LOGIN_TYPE_WORD]).
+    pluck(:id)
+  Follower.with_deleted.where(section_id: section_ids).find_each do |follower|
+    next unless student_user = follower.student_user
+    next unless student_user.provider == User::PROVIDER_SPONSORED
+    next unless Follower.where(student_user: student_user).count == 1
+
+    # TODO(asher): Determine whether this should be delete_user_and_dependencies(student_user).
+    student_user.destroy!
+  end
+end
+
+# Anonymizes the user by deleting various pieces of PII and PPII from the User and UserGeo models.
+# @param [User] user to be anonymized.
+def anonymize_user(user)
+  # Note that we explicitly want to keep users.user_type, users.gender, users.locale,
+  # users.birthday, users.total_lines, users.sign_in_count, users.last_sign_in_at,
+  # users.current_sign_in_at.
+
+  user.reload.update!(
+    name: nil,
+    # TODO(asher): There is a unique index on this. Determine how we want to deal.
+    username: nil,
+    current_sign_in_ip: nil,
+    last_sign_in_ip: nil,
+    email: '',
+    hashed_email: '',
+    encrypted_password: '',
+    uid: nil,
+    reset_password_token: nil,
+    full_address: nil,
+    properties: nil
+  )
+
+  # Note that we explicitly want to keep user_geos.state, user_geos.country, and
+  # user_geos.postal_code.
+  UserGeo.where(user_id: user.id).update!(
+    ip_address: nil,
+    city: nil,
+    latitude: nil,
+    longitude: nil
+  )
+
+  SignIn.where(user_id: user.id).destroy_all
+end
+
+# @param [Integer] The ID of the user to anonymize the sections of.
+def anonymize_user_sections(user_id)
+  Sections.with_deleted.where(user_id: user_id).each do |section|
+    section.name = ANONYMIZED_SECTION_NAME
+    section.save(validate: false)
+  end
+end
+
+# Removes all information about the user pertaining to Pardot. This encompasses Pardot itself, the
+# contact_rollups pegasus table (master and reporting), and the contact_rollups_daily pegasus table
+# (reporting only).
+# @param [Integer] The user ID to purge from Pardot.
+def remove_from_pardot(user_id)
+  pardot_ids = PEGASUS_DB[:contact_rollups].
+    select(:pardot_id).
+    where(dashboard_user_id: user_id).
+    map {|contact_rollup| contact_rollup[:pardot_id]}
+  failed_ids = Pardot.delete_prospects(pardot_ids)
+  raise "Pardot.delete_prospects failed for Pardot IDs #{failed_ids.join(', ')}." unless failed_ids
+
+  PEGASUS_DB[:contact_rollups].where(dashboard_user_id: user_id).delete
+
+  PEGASUS_REPORTING_DB[:contact_rollups_daily].where(dashboard_user_id: user_id).delete
+end
+
+# @param [Integer] The user ID to purge from SOLR.
+def remove_from_solr(user_id)
+  SolrHelper.delete_document(SOLR, 'user', user_id)
+end
+
+# @param [User] user to be anonymized and deleted.
+def delete_user_and_dependencies(user)
+  # WARNING: Because of the effects of dependent destroys and paranoia scoping, order matters in
+  # subtle ways in this method.
+  # TODO(asher): This implementation assumes co-teaching does not exist. Update this appropriately
+  # when it does.
+
+  user.revoke_all_permissions
+  delete_open_ended_answers(user.id)
+  clean_survey_responses(user.id)
+  delete_projects_and_project_data(user.id)
+  delete_orphaned_students(user.id)
+  anonymize_user(user)
+  anonymize_user_sections(user.id)
+  remove_from_pardot(user.id)
+  remove_from_solr(user.id)
+
+  user.destroy
+end
+
+def main
+  # Delete inactive users, e.g., those users with no account activity in the past seven years. Since
+  # it is (mostly) impossible to soft-delete yourself without signing in, we need only search among
+  # non-soft-deleted users.
+  seven_years_ago = Time.now - 7.years
+  User.where('current_sign_in_at < ?', seven_years_ago).find_each do |user|
+    delete_user_and_dependencies(user)
+  end
+
+  # Delete stale soft-deleted users, e.g., those users who have been soft-deleted for thirty days.
+  thirty_days_ago = Time.now - 30.days
+  User.only_deleted.where('deleted_at < ?', thirty_days_ago).find_each do |user|
+    delete_user_and_dependencies(user)
+  end
+end
+
+# TODO(asher): Run this only after the spec is finalized and appropriate people have signed off on
+# the spec and actually deleting data.
+# main if only_one_running?(__FILE__)
