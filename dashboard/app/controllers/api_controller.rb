@@ -83,7 +83,6 @@ class ApiController < ApplicationController
     # student level completion data
     students = @section.students.map do |student|
       level_map = student.user_levels_by_level(@script)
-      paired_user_level_ids = PairedUserLevel.pairs(level_map.keys)
       student_levels = @script.script_levels.map do |script_level|
         user_levels = script_level.level_ids.map do |id|
           contained_levels = Script.cache_find_level(id).contained_levels
@@ -94,7 +93,7 @@ class ApiController < ApplicationController
           end
         end.compact
         level_class = best_activity_css_class user_levels
-        paired = (paired_user_level_ids & user_levels).any?
+        paired = user_levels.any?(&:paired?)
         level_class << ' paired' if paired
         title = paired ? '' : script_level.position
         {
