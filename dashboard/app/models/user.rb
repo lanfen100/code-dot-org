@@ -47,17 +47,19 @@
 #
 # Indexes
 #
-#  index_users_on_birthday                             (birthday)
-#  index_users_on_email_and_deleted_at                 (email,deleted_at)
-#  index_users_on_hashed_email_and_deleted_at          (hashed_email,deleted_at)
-#  index_users_on_invitation_token                     (invitation_token) UNIQUE
-#  index_users_on_invitations_count                    (invitations_count)
-#  index_users_on_invited_by_id                        (invited_by_id)
-#  index_users_on_provider_and_uid_and_deleted_at      (provider,uid,deleted_at) UNIQUE
-#  index_users_on_reset_password_token_and_deleted_at  (reset_password_token,deleted_at) UNIQUE
-#  index_users_on_school_info_id                       (school_info_id)
-#  index_users_on_studio_person_id                     (studio_person_id)
-#  index_users_on_username_and_deleted_at              (username,deleted_at) UNIQUE
+#  index_users_on_birthday                               (birthday)
+#  index_users_on_current_sign_in_at                     (current_sign_in_at)
+#  index_users_on_deleted_at                             (deleted_at)
+#  index_users_on_email_and_deleted_at                   (email,deleted_at)
+#  index_users_on_hashed_email_and_deleted_at            (hashed_email,deleted_at)
+#  index_users_on_invitation_token                       (invitation_token) UNIQUE
+#  index_users_on_invitations_count                      (invitations_count)
+#  index_users_on_invited_by_id                          (invited_by_id)
+#  index_users_on_provider_and_uid_and_deleted_at        (provider,uid,deleted_at) UNIQUE
+#  index_users_on_reset_password_token_and_deleted_at    (reset_password_token,deleted_at) UNIQUE
+#  index_users_on_school_info_id                         (school_info_id)
+#  index_users_on_studio_person_id                       (studio_person_id)
+#  index_users_on_username_and_deleted_at                (username,deleted_at) UNIQUE
 #
 
 require 'digest/md5'
@@ -891,20 +893,14 @@ class User < ActiveRecord::Base
     user_scripts = in_progress_and_completed_scripts.
       select {|user_script| !course_scripts_script_ids.include?(user_script.script_id)}
 
-    # TODO: replace courseName with name (here and in components) as some of these
-    # are courses and some are scripts
-    # TODO: may make more sense to generate links on the client (might need to
-    # provide both name and title to accomplish this). If we do we can get rid of
-    # include Rails.application.routes.url_helpers
-    # TODO: assigned sections seems like it belongs somewhere else
-    # TODO: currently no way for levelbuilders to edit description_short
-
     course_data = courses.map do |course|
       {
-        courseName: data_t_suffix('course.name', course[:name], 'title'),
+        name: data_t_suffix('course.name', course[:name], 'title'),
         description: data_t_suffix('course.name', course[:name], 'description_short'),
         link: course_path(course),
         image: '',
+        # assigned_sections is current unused. When we support this, I think it makes
+        # more sense to get/store this data separately from courses.
         assignedSections: []
       }
     end
@@ -913,10 +909,12 @@ class User < ActiveRecord::Base
       script_id = user_script[:script_id]
       script = Script.get_from_cache(script_id)
       {
-        courseName: data_t_suffix('script.name', script[:name], 'title'),
+        name: data_t_suffix('script.name', script[:name], 'title'),
         description: data_t_suffix('script.name', script[:name], 'description_short', default: ''),
         link: script_path(script),
         image: "",
+        # assigned_sections is current unused. When we support this, I think it makes
+        # more sense to get/store this data separately from courses.
         assignedSections: []
       }
     end
