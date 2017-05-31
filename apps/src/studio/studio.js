@@ -773,7 +773,7 @@ var calcMoveDistanceFromQueues = function (index, modifyQueues) {
 
   Studio.eventHandlers.forEach(function (handler) {
     var cmd = handler.cmdQueue[0];
-    if (cmd && cmd.name === 'moveDistance' && cmd.opts.spriteIndex === index) {
+    if (cmd && cmd.name == 'moveDistance' && cmd.opts.spriteIndex === index) {
       var distThisMove = Math.min(cmd.opts.queuedDistance || Infinity,
                                   Studio.sprite[cmd.opts.spriteIndex].speed);
       var moveDirection = utils.normalize(Direction.getUnitVector(cmd.opts.dir));
