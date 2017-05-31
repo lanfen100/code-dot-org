@@ -251,6 +251,7 @@ namespace :seed do
       :secret_words,
       :secret_pictures
     ].map do |to_seed|
+      puts "[#{Time.now}] Seeding #{to_seed}"
       Rake::Task["seed:#{to_seed}"].invoke
     end
   end
