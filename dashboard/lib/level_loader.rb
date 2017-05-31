@@ -1,11 +1,32 @@
 class LevelLoader
-  def self.load_custom_levels
+  def self.load_custom_levels(level_files = nil)
     level_index = Level.includes(:game).to_a.index_by(&:name)
+    if level_files.nil?
+      level_files = Dir.glob(Rails.root.join('config/scripts/**/*.level')).sort
+    end
     puts "[#{Time.now}] -- Loading levels"
-    Dir.glob(Rails.root.join('config/scripts/**/*.level')).sort.map do |path|
+    level_files.map do |path|
       load_custom_level(path, level_index)
     end
     puts "[#{Time.now}] -- Loaded levels"
+  end
+
+  def self.load_custom_levels_for_scripts(script_files)
+    levels_to_load = script_files.map do |script_file|
+      script_data, _ = ScriptDSL.parse_file(script_file)
+      script_data[:stages].map do |stage|
+        stage[:scriptlevels].map do |script_level|
+          level_files = script_level[:levels].map do |level|
+            Rails.root.join("config/scripts/levels/#{level[:name]}.level")
+          end
+          level_files.select do |level_file|
+            File.file?(level_file)
+          end
+        end
+      end
+    end.flatten.sort.uniq
+
+    load_custom_levels(levels_to_load)
   end
 
   def self.level_file_path(name)

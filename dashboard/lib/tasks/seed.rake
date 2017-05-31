@@ -71,7 +71,8 @@ namespace :seed do
     update_scripts(incremental: true)
   end
 
-  task scripts_ui_tests: SCRIPTS_DEPENDENCIES do
+  UI_TEST_SCRIPTS_DEPENDENCIES = [:environment, :games, :ui_test_custom_levels, :dsls]
+  task scripts_ui_tests: UI_TEST_SCRIPTS_DEPENDENCIES do
     update_scripts(ui_test: true)
   end
 
@@ -119,6 +120,10 @@ namespace :seed do
   # Generate the database entry from the custom levels json file
   task custom_levels: :environment do
     LevelLoader.load_custom_levels
+  end
+
+  task ui_test_custom_levels: :environment do
+    LevelLoader.load_custom_levels_for_scripts(UI_TEST_SCRIPTS)
   end
 
   task callouts: :environment do
