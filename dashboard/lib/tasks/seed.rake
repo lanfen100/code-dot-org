@@ -240,7 +240,7 @@ namespace :seed do
   task all: [:videos, :concepts, :scripts, :callouts, :school_districts, :schools, :regional_partners, :regional_partners_school_districts, :secret_words, :secret_pictures, :courses]
   task :ui_test do
     [
-      :videos,
+      #:videos,
       :concepts,
       :scripts_ui_tests,
       :callouts,
@@ -249,7 +249,7 @@ namespace :seed do
       :regional_partners,
       :regional_partners_school_districts,
       :secret_words,
-      :secret_pictures
+      :secret_pictures,
     ].map do |to_seed|
       puts "[#{Time.now}] Seeding #{to_seed}"
       Rake::Task["seed:#{to_seed}"].invoke
