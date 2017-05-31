@@ -1,9 +1,11 @@
 class LevelLoader
   def self.load_custom_levels
     level_index = Level.includes(:game).to_a.index_by(&:name)
+    puts "[#{Time.now}] -- Loading levels"
     Dir.glob(Rails.root.join('config/scripts/**/*.level')).sort.map do |path|
       load_custom_level(path, level_index)
     end
+    puts "[#{Time.now}] -- Loaded levels"
   end
 
   def self.level_file_path(name)

@@ -462,6 +462,7 @@ class Script < ActiveRecord::Base
       custom_i18n = {}
       # Load custom scripts from Script DSL format
       custom_files.map do |script|
+        puts "[#{Time.now}] -- Seeding script #{script}"
         name = File.basename(script, '.script')
         script_data, i18n = ScriptDSL.parse_file(script)
 
