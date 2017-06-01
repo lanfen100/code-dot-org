@@ -11,22 +11,49 @@ class LevelLoader
     puts "[#{Time.now}] -- Loaded levels"
   end
 
-  def self.load_custom_levels_for_scripts(script_files)
-    levels_to_load = script_files.map do |script_file|
+  def self.levels_used_in_scripts(script_files)
+    levels = script_files.map do |script_file|
       script_data, _ = ScriptDSL.parse_file(script_file)
       script_data[:stages].map do |stage|
         stage[:scriptlevels].map do |script_level|
-          level_files = script_level[:levels].map do |level|
-            Rails.root.join("config/scripts/levels/#{level[:name]}.level")
-          end
-          level_files.select do |level_file|
-            File.file?(level_file)
+          script_level[:levels].map do |level|
+            level_file = Rails.root.join("config/scripts/levels/#{level[:name]}.level")
+            if File.file?(level_file)
+              level_file
+            else
+              level_files_for_level_group(level[:name])
+            end
           end
         end
       end
-    end.flatten.sort.uniq
+    end.flatten.compact
+    pp levels
+    levels.sort.uniq
+  end
 
-    load_custom_levels(levels_to_load)
+  def self.level_files_for_level_group(level_name)
+    level_group_file = "config/scripts/#{level_name}.level_group"
+    #multi_level_file = "config/scripts/#{level_name}.multi"
+    if File.file?(level_group_file)
+      puts "Gathering files for level group #{level_name}"
+      level_group_data, _ = LevelGroupDSL.parse_file(level_group_file, true)
+      [Dir.glob(level_group_file)] + level_group_data[:properties][:pages].map do |page|
+        page[:levels].map do |inner_level_name|
+          inner_level_file = Rails.root.join("config/scripts/levels/#{inner_level_name}.level")
+          if File.file?(inner_level_file)
+            Dir.glob(inner_level_file)
+          else
+            nil
+          end
+        end
+      end
+    #elsif File.file(multi_level_file)
+    #  puts "Gathering files for multi level #{level_name}"
+    #  multi_level_data, _ = MultiDSL.parse_file(multi_level_file, nil, true)
+    else
+      # It might be a different dsldefined level
+      Dir.glob("config/scripts/levels/#{level_name}.*")
+    end
   end
 
   def self.level_file_path(name)

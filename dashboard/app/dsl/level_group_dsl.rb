@@ -30,14 +30,16 @@ class LevelGroupDSL < BaseDSL
   end
 
   def text(name)
-    # Ensure level is appropriate type.
-    level = Script.cache_find_level(name)
-    if level.nil?
-      raise "Unable to locate level '#{name}'"
-    end
-    level_class = level.class.to_s.underscore
-    unless level_class == "external"
-      raise "LevelGroup text must be a level of type external. (#{name})"
+    unless @skip_validation
+      # Ensure level is appropriate type.
+      level = Script.cache_find_level(name)
+      if level.nil?
+        raise "Unable to locate level '#{name}'"
+      end
+      level_class = level.class.to_s.underscore
+      unless level_class == "external"
+        raise "LevelGroup text must be a level of type external. (#{name})"
+      end
     end
 
     # Record the name of the external level, as well as the index of the actual level
@@ -52,17 +54,19 @@ class LevelGroupDSL < BaseDSL
     end
     @level_names << name
 
-    # Ensure level is appropriate type.
-    level = Level.where(name: name).first # For some reason find_by_name doesn't always work here!
-    if level.nil?
-      raise "Unable to locate level '#{name}'"
-    end
-    if level.is_a?(FreeResponse) && level.allow_user_uploads?
-      raise "User uploads aren't supported in a LevelGroup (due to global channel) '#{name}'"
-    end
-    level_class = level.class.to_s.underscore
-    unless %w(multi text_match free_response evaluation_multi).include? level_class
-      raise "LevelGroup cannot contain level type #{level_class}"
+    unless @skip_validation
+      # Ensure level is appropriate type.
+      level = Level.where(name: name).first # For some reason find_by_name doesn't always work here!
+      if level.nil?
+        raise "Unable to locate level '#{name}'"
+      end
+      if level.is_a?(FreeResponse) && level.allow_user_uploads?
+        raise "User uploads aren't supported in a LevelGroup (due to global channel) '#{name}'"
+      end
+      level_class = level.class.to_s.underscore
+      unless %w(multi text_match free_response evaluation_multi).include? level_class
+        raise "LevelGroup cannot contain level type #{level_class}"
+      end
     end
 
     @current_page_level_names << name
@@ -86,7 +90,7 @@ class LevelGroupDSL < BaseDSL
     {'name' => {@name => @i18n_strings}}
   end
 
-  def self.parse_file(filename)
-    super(filename, File.basename(filename, '.level_group'))
+  def self.parse_file(filename, skip_validation=false)
+    super(filename, File.basename(filename, '.level_group'), skip_validation)
   end
 end

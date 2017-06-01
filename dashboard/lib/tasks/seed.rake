@@ -3,6 +3,8 @@ require "csv"
 namespace :seed do
   verbose false
 
+  levels_to_load = nil
+
   task videos: :environment do
     Video.setup
   end
@@ -71,7 +73,7 @@ namespace :seed do
     update_scripts(incremental: true)
   end
 
-  UI_TEST_SCRIPTS_DEPENDENCIES = [:environment, :games, :ui_test_custom_levels, :dsls]
+  UI_TEST_SCRIPTS_DEPENDENCIES = [:environment, :games, :ui_test_custom_levels, :ui_test_dsls]
   task scripts_ui_tests: UI_TEST_SCRIPTS_DEPENDENCIES do
     update_scripts(ui_test: true)
   end
@@ -93,10 +95,21 @@ namespace :seed do
 
   # explicit execution of "seed:dsls"
   task dsls: :environment do
+    load_dsl_defined
+  end
+
+  task ui_test_dsls: [:environment, :ui_test_levels] do
+    load_dsl_defined(levels_to_load)
+  end
+
+  def load_dsl_defined(levels_to_load=nil)
     DSLDefined.transaction do
       i18n_strings = {}
       # Parse each .[dsl] file and setup its model.
       DSLS_GLOB.each do |filename|
+        if levels_to_load && !levels_to_load.include?(filename)
+          next
+        end
         dsl_class = DSL_TYPES.detect {|type| filename.include?(".#{type.underscore}")}.try(:constantize)
         begin
           data, i18n = dsl_class.parse_file(filename)
@@ -122,8 +135,12 @@ namespace :seed do
     LevelLoader.load_custom_levels
   end
 
-  task ui_test_custom_levels: :environment do
-    LevelLoader.load_custom_levels_for_scripts(UI_TEST_SCRIPTS)
+  task ui_test_custom_levels: [:environment, :ui_test_levels] do
+    LevelLoader.load_custom_levels(levels_to_load)
+  end
+
+  task ui_test_levels: :environment do
+    levels_to_load ||= LevelLoader.levels_used_in_scripts(UI_TEST_SCRIPTS)
   end
 
   task callouts: :environment do

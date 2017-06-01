@@ -12,6 +12,10 @@ class BaseDSL
   end
   # rubocop:enable Style/TrivialAccessors
 
+  def skip_validation
+    @skip_validation = true
+  end
+
   def encrypted(text)
     @hash['encrypted'] = '1'
 
@@ -28,14 +32,15 @@ class BaseDSL
     self.class.to_s.tap {|s| s.slice!('DSL')}.underscore
   end
 
-  def self.parse_file(filename, name=nil)
+  def self.parse_file(filename, name=nil, skip_validation=false)
     text = File.read(filename)
-    parse(text, filename, name)
+    parse(text, filename, name, skip_validation)
   end
 
-  def self.parse(str, filename, name=nil)
+  def self.parse(str, filename, name=nil, skip_validation=false)
     object = new
     object.name(name) if name.present?
+    object.skip_validation if skip_validation
     object.instance_eval(str.to_ascii, filename)
     [object.parse_output, object.i18n_hash]
   end
