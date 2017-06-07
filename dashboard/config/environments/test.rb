@@ -29,6 +29,7 @@ Dashboard::Application.configure do
   ci_test = !!(ENV['UNIT_TEST'] || ENV['CI'])
 
   if ci_test
+    config.assets.compile = true
     config.assets.digest = false
   else
     # Compress JavaScripts and CSS.
