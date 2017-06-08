@@ -40,7 +40,7 @@ var utils = require('../utils');
 var Slider = require('../slider');
 var _ = require('lodash');
 var dropletConfig = require('./dropletConfig');
-var JSInterpreter = require('../JSInterpreter');
+var JSInterpreter = require('../lib/tools/jsinterpreter/JSInterpreter');
 var JsInterpreterLogger = require('../JsInterpreterLogger');
 import {
   getContainedLevelResultInfo,
@@ -67,8 +67,8 @@ const SMOOTH_ANIMATE_STEP_SIZE = 5;
 const FAST_SMOOTH_ANIMATE_STEP_SIZE = 15;
 
 /**
-* Minimum joint segment length
-*/
+ * Minimum joint segment length
+ */
 var JOINT_SEGMENT_LENGTH = 50;
 
 /**
@@ -255,7 +255,7 @@ Artist.prototype.init = function (config) {
   this.studioApp_.setPageConstants(config);
 
   var iconPath = '/blockly/media/turtle/' +
-    (config.isLegacyShare && config.hideSource ? 'icons_white.png' : 'icons.png');
+     (config.isLegacyShare && config.hideSource ? 'icons_white.png' : 'icons.png');
   var visualizationColumn = <ArtistVisualizationColumn iconPath={iconPath}/>;
 
   ReactDOM.render(
@@ -276,8 +276,8 @@ Artist.prototype.init = function (config) {
  */
 Artist.prototype.prepareForRemix = function () {
   if (REMIX_PROPS.every(group => Object.keys(group.defaultValues).every(prop =>
-        this.level[prop] === undefined ||
-            this.level[prop] === group.defaultValues[prop]))) {
+    this.level[prop] === undefined ||
+                                                                              this.level[prop] === group.defaultValues[prop]))) {
     // If all of the level props we need to worry about are undefined or equal
     // to the default value, we don't need to insert any new blocks.
     return Promise.resolve();
@@ -319,8 +319,8 @@ Artist.prototype.prepareForRemix = function () {
     const blockArgs = {};
     for (let prop in group.defaultValues) {
       blockArgs[prop] = this.level[prop] !== undefined ?
-          this.level[prop] :
-          group.defaultValues[prop];
+                        this.level[prop] :
+                        group.defaultValues[prop];
     }
     insertBeforeNext(group.generateBlock(blockArgs));
   }
@@ -493,7 +493,7 @@ Artist.prototype.placeImage = function (filename, position, scale) {
     if (img.width !== 0) {
       if (scale) {
         this.ctxImages.drawImage(img, position[0], position[1], img.width,
-          img.height, 0, 0, img.width * scale, img.height * scale);
+                                 img.height, 0, 0, img.width * scale, img.height * scale);
       } else  {
         this.ctxImages.drawImage(img, position[0], position[1]);
       }
@@ -509,8 +509,8 @@ Artist.prototype.placeImage = function (filename, position, scale) {
     // it as tainted
     img.crossOrigin = "anonymous";
     img.src = filename.startsWith('http') ?
-        filename :
-        this.studioApp_.assetUrl('media/turtle/' + filename);
+              filename :
+              this.studioApp_.assetUrl('media/turtle/' + filename);
   }
 };
 
@@ -612,9 +612,9 @@ Artist.prototype.drawTurtle = function () {
 };
 
 /**
-  * This is called twice, once with "before" and once with "after", referring to before or after
-  * the sprite is drawn.  For some angles it should be drawn before, and for some after.
-  */
+ * This is called twice, once with "before" and once with "after", referring to before or after
+ * the sprite is drawn.  For some angles it should be drawn before, and for some after.
+ */
 
 Artist.prototype.drawDecorationAnimation = function (when) {
   if (this.skin.id === "elsa") {
@@ -662,7 +662,7 @@ Artist.prototype.reset = function (ignore) {
   this.x = DEFAULT_X;
   this.y = DEFAULT_Y;
   this.heading = this.level.startDirection !== undefined ?
-      this.level.startDirection : DEFAULT_DIRECTION;
+                 this.level.startDirection : DEFAULT_DIRECTION;
   this.penDownValue = true;
   this.visible = true;
 
@@ -696,7 +696,7 @@ Artist.prototype.reset = function (ignore) {
 
   // Clear the feedback.
   this.ctxFeedback.clearRect(
-      0, 0, this.ctxFeedback.canvas.width, this.ctxFeedback.canvas.height);
+    0, 0, this.ctxFeedback.canvas.width, this.ctxFeedback.canvas.height);
 
   if (this.skin.id === "anna") {
     this.setPattern("annaLine");
@@ -739,7 +739,7 @@ Artist.prototype.display = function () {
   var style = this.ctxDisplay.fillStyle;
   this.ctxDisplay.fillStyle = color.white;
   this.ctxDisplay.clearRect(0, 0, this.ctxDisplay.canvas.width,
-    this.ctxDisplay.canvas.width);
+                            this.ctxDisplay.canvas.width);
   this.ctxDisplay.fillStyle = style;
 
   this.ctxDisplay.globalCompositeOperation = 'copy';
@@ -978,7 +978,7 @@ Artist.prototype.animate = function () {
   // when smoothAnimate is true, we divide long steps into partitions of this
   // size.
   this.smoothAnimateStepSize = (stepSpeed === 0 ?
-    FAST_SMOOTH_ANIMATE_STEP_SIZE : SMOOTH_ANIMATE_STEP_SIZE);
+                                FAST_SMOOTH_ANIMATE_STEP_SIZE : SMOOTH_ANIMATE_STEP_SIZE);
 
   if (this.level.editCode &&
       this.JSInterpreter &&
@@ -1147,7 +1147,7 @@ Artist.prototype.step = function (command, values, options) {
       break;
     case 'PS':  // Pen style with image
       if (!values[0] || values[0] === 'DEFAULT') {
-          this.setPattern(null);
+        this.setPattern(null);
       } else {
         this.setPattern(values[0]);
       }
@@ -1379,13 +1379,13 @@ Artist.prototype.drawForwardLineWithPattern_ = function (distance) {
     }
     if (img.width !== 0) {
       this.ctxPattern.drawImage(img,
-        // Start point for clipping image
-        Math.round(lineDistance), 0,
-        // clip region size
-        clipSize, img.height,
-        // some mysterious hand-tweaking done by Brendan
-        Math.round((this.stepDistanceCovered - clipSize - 2)), Math.round((- 18)),
-        clipSize, img.height);
+                                // Start point for clipping image
+                                Math.round(lineDistance), 0,
+                                // clip region size
+                                clipSize, img.height,
+                                // some mysterious hand-tweaking done by Brendan
+                                Math.round((this.stepDistanceCovered - clipSize - 2)), Math.round((- 18)),
+                                clipSize, img.height);
     }
 
     this.ctxPattern.restore();
@@ -1406,13 +1406,13 @@ Artist.prototype.drawForwardLineWithPattern_ = function (distance) {
 
     if (img.width !== 0) {
       this.ctxScratch.drawImage(img,
-        // Start point for clipping image
-        0, 0,
-        // clip region size
-        distance+img.height / 2, img.height,
-        // draw location relative to the ctx.translate point pre-rotation
-        -img.height / 4, -img.height / 2,
-        distance+img.height / 2, img.height);
+                                // Start point for clipping image
+                                0, 0,
+                                // clip region size
+                                distance+img.height / 2, img.height,
+                                // draw location relative to the ctx.translate point pre-rotation
+                               -img.height / 4, -img.height / 2,
+                                distance+img.height / 2, img.height);
     }
 
     this.ctxScratch.restore();
@@ -1503,9 +1503,9 @@ Artist.prototype.checkAnswer = function () {
   // Compare the Alpha (opacity) byte of each pixel in the user's image and
   // the sample answer image.
   var userImage =
-      this.ctxScratch.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    this.ctxScratch.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   var answerImage =
-      this.ctxAnswer.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    this.ctxAnswer.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   var len = Math.min(userImage.data.length, answerImage.data.length);
   var delta = 0;
   // Pixels are in RGBA format.  Only check the Alpha bytes.
@@ -1527,9 +1527,9 @@ Artist.prototype.checkAnswer = function () {
   // errors, and this either needs to be a free play/preidction level, or they
   // need to have met success conditions.
   var levelComplete = (!level.editCode || !this.executionError) &&
-      (level.freePlay ||
-      this.studioApp_.hasContainedLevels ||
-      this.isCorrect_(delta, permittedErrors));
+                      (level.freePlay ||
+                       this.studioApp_.hasContainedLevels ||
+                       this.isCorrect_(delta, permittedErrors));
   this.testResults = this.studioApp_.getTestResults(levelComplete);
 
   var program;
@@ -1556,8 +1556,8 @@ Artist.prototype.checkAnswer = function () {
     this.testResults = TestResults.TOO_MANY_BLOCKS_FAIL;
 
   } else if ((this.testResults ===
-      TestResults.TOO_MANY_BLOCKS_FAIL) ||
-      (this.testResults === TestResults.ALL_PASS)) {
+    TestResults.TOO_MANY_BLOCKS_FAIL) ||
+             (this.testResults === TestResults.ALL_PASS)) {
     // Check that they didn't use a crazy large repeat value when drawing a
     // circle.  This complains if the limit doesn't start with 3.
     // Note that this level does not use colour, so no need to check for that.
@@ -1565,7 +1565,7 @@ Artist.prototype.checkAnswer = function () {
       var code = Blockly.Generator.blockSpaceToCode('JavaScript');
       if (code.indexOf('count < 3') === -1) {
         this.testResults =
-            TestResults.APP_SPECIFIC_ACCEPTABLE_FAIL;
+          TestResults.APP_SPECIFIC_ACCEPTABLE_FAIL;
         this.message = commonMsg.tooMuchWork();
       }
     }
@@ -1621,7 +1621,7 @@ Artist.prototype.checkAnswer = function () {
 
     // Get the canvas data for feedback.
     if (this.testResults >= TestResults.TOO_MANY_BLOCKS_FAIL &&
-      !isFrozen && (level.freePlay || level.impressive)) {
+        !isFrozen && (level.freePlay || level.impressive)) {
       reportData.image = encodeURIComponent(this.getFeedbackImage_().split(',')[1]);
     }
 
@@ -1652,7 +1652,7 @@ Artist.prototype.getFeedbackImage_ = function (width, height) {
     // characters, and pattern - along with drawing.
     this.ctxFeedback.globalCompositeOperation = 'copy';
     this.ctxFeedback.drawImage(this.ctxDisplay.canvas, 0, 0,
-        this.ctxFeedback.canvas.width, this.ctxFeedback.canvas.height);
+                               this.ctxFeedback.canvas.width, this.ctxFeedback.canvas.height);
   } else {
     this.drawImage_(this.ctxFeedback);
   }
@@ -1683,7 +1683,7 @@ Artist.prototype.clearImage_ = function (context) {
   var style = context.fillStyle;
   context.fillStyle = color.white;
   context.clearRect(0, 0, context.canvas.width,
-    context.canvas.height);
+                    context.canvas.height);
   context.fillStyle = style;
 };
 
@@ -1692,18 +1692,18 @@ Artist.prototype.drawImage_ = function (context) {
   if (!this.level.discardBackground) {
     context.globalCompositeOperation = 'source-over';
     context.drawImage(this.ctxImages.canvas, 0, 0,
-      context.canvas.width, context.canvas.height);
+                      context.canvas.width, context.canvas.height);
   }
 
   // Draw the predraw layer.
   context.globalCompositeOperation = 'source-over';
   context.drawImage(this.ctxPredraw.canvas, 0, 0,
-    context.canvas.width, context.canvas.height);
+                    context.canvas.width, context.canvas.height);
 
   // Draw the user layer.
   context.globalCompositeOperation = 'source-over';
   context.drawImage(this.ctxScratch.canvas, 0, 0,
-    context.canvas.width, context.canvas.height);
+                    context.canvas.width, context.canvas.height);
 };
 
 // Helper for creating canvas elements.
@@ -1716,10 +1716,10 @@ Artist.prototype.createCanvas_ = function (id, width, height) {
 };
 
 /**
-* When smooth animate is true, steps can be broken up into multiple animations.
-* At the end of each step, we want to reset any incremental information, which
-* is what this does.
-*/
+ * When smooth animate is true, steps can be broken up into multiple animations.
+ * At the end of each step, we want to reset any incremental information, which
+ * is what this does.
+ */
 Artist.prototype.resetStepInfo_ = function () {
   this.stepStartX = this.x;
   this.stepStartY = this.y;
